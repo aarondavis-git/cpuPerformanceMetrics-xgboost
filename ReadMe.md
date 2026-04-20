@@ -38,7 +38,7 @@ Two columns were identified as incorrectly typed:
 - `Clock Speed (GHz)`
 - `Cache Miss Rate (%)`
 These columns contained invalid string values such as `"ERROR"` and were converted to numeric using:
-```python
+
 pd.to_numeric(..., errors="coerce")
 
 Invalid entries were automatically converted to NaN.
