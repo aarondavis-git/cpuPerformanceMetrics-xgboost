@@ -1,21 +1,18 @@
-# CPU Performance Metrics Analysis (XGBoost)
-
+# CPU Performance Metrics Analysis with XGBoost
 ## Overview
-This project analyzes a synthetic dataset of CPU and system performance metrics and attempts to predict key system variables using machine learning (XGBoost).
-
-The workflow focuses on:
+This project analyzes a synthetic dataset of CPU and disk performance metrics using machine learning.
+The goal was to predict different target variables from available system metrics and evaluate how well the features explain system behavior.
+The project focuses on:
 - Data cleaning and preprocessing
-- Outlier detection and handling
 - Missing value analysis
-- Model training and evaluation
-- Interpretation of weak predictive performance
-
+- Corrupted value handling
+- Outlier detection and treatment
+- Exploratory data analysis
+- XGBoost regression modeling
+- Interpretation of weak model performance
 ---
-
 ## Dataset
-
-The dataset contains 10,000 rows and 7 features:
-
+The dataset contains 10,000 rows and 7 columns:
 - Disk Write Speed (MB/s)
 - Disk Read Speed (MB/s)
 - CPU Usage (%)
@@ -23,126 +20,223 @@ The dataset contains 10,000 rows and 7 features:
 - Clock Speed (GHz)
 - Cache Miss Rate (%)
 - Power Consumption (W)
-
-Some columns include:
+The dataset intentionally contains several data quality problems:
 - Missing values
-- Corrupted entries
-- Outliers and extreme values
-- Inconsistent formatting
-
+- Corrupted string values
+- Inconsistent column types
+- Extreme outliers
+- Invalid values outside physical limits
 ---
+## Initial Inspection
+The project began by inspecting:
+- Dataset shape
+- Column types
+- Duplicate rows
+- Missing values
+- Sample values from object columns
+Two columns were identified as incorrectly typed:
+- `Clock Speed (GHz)`
+- `Cache Miss Rate (%)`
+These columns contained invalid string values such as `"ERROR"` and were converted to numeric using:
+```python
+pd.to_numeric(..., errors="coerce")
 
-## Data Cleaning Steps
+Invalid entries were automatically converted to NaN.
 
-The following preprocessing steps were applied:
+⸻
 
-### 1. Missing Value Analysis
-- Computed percentage of missing values per column
-- Overall missing rate ≈ 2%
+Missing Value Analysis
 
-### 2. Outlier Handling
-- CPU Usage constrained to valid range (0–100%)
-- Negative values removed or set to NaN
-- Extreme values clipped using 99th percentile thresholds
+Missing values were analyzed both by count and percentage.
 
-### 3. Data Type Fixes
-- Converted object-type columns to numeric where needed
+Missing Values (%) Per Column
 
-### 4. Final Clean Dataset
-- Remaining missing values handled implicitly via XGBoost
+* CPU Usage (%) → ~3.0%
+* Disk Write Speed (MB/s) → ~3.0%
+* Cache Miss Rate (%) → ~2.5%
+* Disk Read Speed (MB/s) → ~2.0%
+* CPU Temperature (°C) → ~2.0%
+* Clock Speed (GHz) → ~1.5%
+* Power Consumption (W) → 0.0%
 
----
+Overall missing percentage across the dataset was approximately 2%.
 
-## Exploratory Data Analysis
+⸻
 
-### Correlation Analysis
+Data Cleaning
+
+Several cleaning rules were applied based on realistic hardware constraints.
+
+CPU Usage (%)
+
+* Restricted to range 0–100%
+
+Clock Speed (GHz)
+
+* Restricted to range 0–10 GHz
+
+Cache Miss Rate (%)
+
+* Restricted to range 0–100%
+
+Disk Speeds
+
+* Negative values removed
+* Extreme values clipped at the 99th percentile
+
+Power Consumption (W)
+
+* Negative values removed
+* Extreme values clipped at the 99th percentile
+
+After cleaning, approximately 13.6% of rows contained at least one missing value.
+
+Missing values in feature columns were left for XGBoost to handle automatically.
+
+⸻
+
+Exploratory Data Analysis
+
+Correlation Analysis
+
 A correlation heatmap was generated to examine relationships between variables.
 
-**Key Finding:**
-- All correlations are weak (~0.16–0.17 range)
-- No strong linear relationships between features and targets
+Key Finding
 
----
+All correlations were weak, generally in the range of 0.16–0.17.
 
-## Model
+This suggests that the features have only weak relationships with each other and with the target variables.
 
-### Algorithm
-- XGBoost Regressor
+Example correlations for CPU Usage (%):
 
-### Train/Test Split
-- 80% training
-- 20% testing
-- Random state: 42
+* Power Consumption (W) → ~0.17
+* Clock Speed (GHz) → ~0.17
+* Disk Write Speed (MB/s) → ~0.17
+* CPU Temperature (°C) → ~0.17
+* Cache Miss Rate (%) → ~0.16
+* Disk Read Speed (MB/s) → ~0.16
 
-### Evaluation Metrics
-- MAE (Mean Absolute Error)
-- RMSE (Root Mean Squared Error)
-- R² Score
+⸻
 
----
+Machine Learning Model
 
-## Results
+Algorithm
 
-### Example Results (CPU Usage)
-- MAE: ~15–22
-- RMSE: ~19–49
-- Train R²: ~0.04–0.05
-- Test R²: ~-0.00 to -0.01
+* XGBoost Regressor
 
-### Power Consumption Results
-- Similar performance pattern
-- Low predictive power
+Train/Test Split
 
----
+* 80% training
+* 20% testing
+* Random state = 42
 
-## Feature Importance
+Evaluation Metrics
 
-Feature importance analysis showed:
-- No dominant feature
-- Relatively uniform contribution across variables
-- Weak signal distribution across all inputs
+* MAE (Mean Absolute Error)
+* RMSE (Root Mean Squared Error)
+* R² Score
 
----
+⸻
 
-## Key Insight
+Targets Tested
 
-Despite using a powerful model (XGBoost), performance remains low due to:
+Three separate targets were tested:
 
-- Weak relationships between features and targets
-- Likely independent or randomly generated variables
-- Limited predictive structure in the dataset
+1. Power Consumption (W)
+2. CPU Usage (%)
+3. CPU Temperature (°C)
 
-### Conclusion:
-> The dataset is better suited for demonstrating data cleaning, preprocessing, and model evaluation techniques than for high-accuracy prediction tasks.
+⸻
 
----
+Results
 
-## Skills Demonstrated
+Power Consumption (W)
 
-- Data cleaning and preprocessing (pandas, numpy)
-- Outlier detection and handling
-- Missing data analysis
-- Train/test splitting
-- Machine learning with XGBoost
-- Model evaluation (MAE, RMSE, R²)
-- Data visualization (correlation heatmap, feature importance)
+* MAE ≈ 21.8
+* RMSE ≈ 48.7
+* Train R² ≈ 0.05
+* Test R² ≈ -0.00
 
----
+CPU Usage (%)
 
-## Possible Improvements
+* MAE ≈ 16.0
+* RMSE ≈ 19.9
+* Train R² ≈ 0.05
+* Test R² ≈ -0.01
 
-- Feature engineering (ratios, interactions)
-- Time-series modeling (if temporal structure exists)
-- Alternative targets (e.g., CPU Temperature or Usage)
-- Comparison with simpler models (linear regression baseline)
+CPU Temperature (°C)
 
----
+* MAE ≈ 8.4
+* RMSE ≈ 11.1
+* Train R² ≈ 0.05
+* Test R² ≈ -0.01
 
-## Tools Used
+⸻
 
-- Python
-- Pandas
-- NumPy
-- Scikit-learn
-- XGBoost
-- Matplotlib
+Feature Importance
+
+Feature importance plots were generated for the XGBoost models.
+
+Key Finding
+
+* No feature was strongly dominant
+* Importance values were relatively uniform
+* This supports the weak correlation results
+
+⸻
+
+Key Insight
+
+Despite using a strong machine learning model, predictive performance remained very low across all targets.
+
+This suggests that:
+
+* The features contain very little predictive signal
+* Relationships between variables are weak
+* The dataset may have been generated with mostly independent variables
+* Better performance is unlikely without stronger features or additional data
+
+Conclusion
+
+This dataset is more useful for demonstrating data cleaning, preprocessing, feature inspection, and machine learning workflow than for building a high-performing predictive model.
+
+⸻
+
+Skills Demonstrated
+
+* Data cleaning with pandas
+* Handling corrupted values
+* Missing value analysis
+* Outlier treatment
+* Feature type conversion
+* Exploratory data analysis
+* Correlation analysis
+* XGBoost regression
+* Model evaluation with MAE, RMSE, and R²
+* Feature importance visualization
+* Interpretation of weak predictive performance
+
+⸻
+
+Possible Improvements
+
+* Feature engineering
+* Interaction variables
+* Ratio-based features
+* Simpler baseline models
+* Additional visualization
+* Residual analysis
+* Cross-validation
+* Hyperparameter tuning
+* Time-series modeling if timestamps become available
+
+⸻
+
+Tools Used
+
+* Python
+* Pandas
+* NumPy
+* Matplotlib
+* Scikit-learn
+* XGBoost
